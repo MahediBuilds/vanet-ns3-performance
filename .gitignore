@@ -1,0 +1,9 @@
+# Per-run output from run_experiments.sh (merged copies are kept in results/)
+results/raw/
+results/logs/
+results/jobs.txt
+
+__pycache__/
+*.pyc
+.vscode/
+.idea/
