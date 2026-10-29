@@ -2,12 +2,12 @@
 """Merge the per-run CSVs written by run_experiments.sh and draw the four
 result graphs (mean with standard-deviation error bars).
 
-Usage: python3 plot_results.py [results_dir]
+Usage: python3 plot_results.py [results_dir] [plots_dir]
 
 Writes into results_dir:
   all_runs.csv   every run in one file
   summary.csv    mean and standard deviation of each metric per test point
-  plots/*.png    the four graphs
+  plots/*.png    the four graphs (or plots_dir/*.png if given)
 """
 import csv
 import glob
@@ -121,7 +121,7 @@ def main():
         sys.exit(f"No CSV files found in {os.path.join(results_dir, 'raw')}")
     summary = summarise(rows)
     write_csvs(rows, summary, results_dir)
-    plots_dir = os.path.join(results_dir, "plots")
+    plots_dir = sys.argv[2] if len(sys.argv) > 2 else os.path.join(results_dir, "plots")
     os.makedirs(plots_dir, exist_ok=True)
     plot(summary, plots_dir)
 

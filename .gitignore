@@ -7,3 +7,12 @@ __pycache__/
 *.pyc
 .vscode/
 .idea/
+
+# Local ns-3 install and macOS files
+ns-allinone-*/
+.DS_Store
+.venv/
+results-348/
+
+# Second parameter variation (run data and plots)
+results/plots2/
