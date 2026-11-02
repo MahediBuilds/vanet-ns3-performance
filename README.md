@@ -19,6 +19,7 @@ Simulator," *Promet – Traffic & Transportation*, vol. 32, no. 2, pp. 255–268
 | [`vanet-highway.cc`](vanet-highway.cc) | NS-3 scenario (goes in `scratch/`). One run → one CSV row of results |
 | [`run_experiments.sh`](run_experiments.sh) | Runs all four parameter sweeps × 5 random seeds (95 runs) in parallel |
 | [`plot_results.py`](plot_results.py) | Merges the runs, computes mean ± standard deviation, draws the graphs |
+| [`animate_trace.py`](animate_trace.py) | Animates one traced run (`--trace`) as a GIF/MP4 of vehicles, routes and packets |
 | [`results/`](results) | Our results: `all_runs.csv`, `summary.csv` and the four graphs in `plots/` |
 
 ## Simulation scenario
@@ -121,3 +122,23 @@ cd ~/ns-allinone-3.45/ns-3.45
 ./ns3 run "vanet-highway --nVehicles=60 --speed=20 --dataRateKbps=100 --range=150 --RngRun=1"
 ./ns3 run "vanet-highway --PrintHelp"   # list all options
 ```
+
+### Visualising a run
+
+`--trace=FILE` makes a run record its packet-level events (vehicle positions, every data frame on air,
+AODV RREQ/RREP/RERR/hello frames, packets sent and delivered). Tracing only observes the run, so the
+results row is identical with or without it. [`animate_trace.py`](animate_trace.py) turns the trace into
+an animated GIF (or MP4, if ffmpeg is installed) and an optional PNG snapshot:
+
+```bash
+./ns3 run "vanet-highway --range=150 --RngRun=1 --trace=range150.trace"
+python3 animate_trace.py range150.trace range150.gif --start 9 --end 60 --snapshot 30 range150_t30.png
+```
+
+[`results/animations/`](results/animations) has snapshots at t = 30 s of baseline runs (seed 1) at 50, 150
+and 250 m range (the GIFs are not committed because of their size; the commands above regenerate them).
+The vehicles are in the same places in all three, so the only difference is how many links are in range.
+
+| 50 m: the road splits into isolated vehicles | 250 m: long multi-hop routes, many route breaks |
+|---|---|
+| ![50 m range](results/animations/range50_t30.png) | ![250 m range](results/animations/range250_t30.png) |
