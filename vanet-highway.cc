@@ -11,7 +11,8 @@
  * Example:
  *   ./ns3 run "vanet-highway --nVehicles=60 --speed=20 --dataRateKbps=100 --range=150 --RngRun=1"
  *
- * Add --trace=run.trace to record packet-level events for animate_trace.py.
+ * Add --trace=run.trace to record packet-level events for animate_trace.py, or
+ * --netanim=run.xml to write a NetAnim animation.
  */
 
 #include "ns3/aodv-module.h"
@@ -22,6 +23,7 @@
 #include "ns3/internet-module.h"
 #include "ns3/llc-snap-header.h"
 #include "ns3/mobility-module.h"
+#include "ns3/netanim-module.h"
 #include "ns3/network-module.h"
 #include "ns3/wifi-mac-header.h"
 #include "ns3/wifi-module.h"
@@ -29,6 +31,7 @@
 #include <cmath>
 #include <fstream>
 #include <map>
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -38,25 +41,41 @@ NS_LOG_COMPONENT_DEFINE("VanetHighway");
 
 // Vehicles that drive off one end of the highway re-enter at the other end,
 // so the number of vehicles on the road (the density) stays constant.
+// ConstantVelocityMobilityModel::SetPosition also sets the velocity to zero,
+// so the velocity is restored after each wrap to keep the vehicle driving.
 static void
 WrapPositions(NodeContainer vehicles, double length, Time interval)
 {
     for (auto it = vehicles.Begin(); it != vehicles.End(); ++it)
     {
-        Ptr<MobilityModel> mob = (*it)->GetObject<MobilityModel>();
+        Ptr<ConstantVelocityMobilityModel> mob =
+            (*it)->GetObject<ConstantVelocityMobilityModel>();
         Vector pos = mob->GetPosition();
-        if (pos.x > length)
+        if (pos.x > length || pos.x < 0)
         {
-            pos.x -= length;
+            Vector vel = mob->GetVelocity();
+            pos.x += pos.x > length ? -length : length;
             mob->SetPosition(pos);
-        }
-        else if (pos.x < 0)
-        {
-            pos.x += length;
-            mob->SetPosition(pos);
+            mob->SetVelocity(vel);
         }
     }
     Simulator::Schedule(interval, &WrapPositions, vehicles, length, interval);
+}
+
+// NetAnim writes a vehicle's position when its course changes, but its own
+// periodic poll skips vehicles that sent a packet since the last poll, so busy
+// vehicles would freeze on screen. Re-setting the same velocity reports a course
+// change without altering the motion.
+static void
+ReportPositions(NodeContainer vehicles, Time interval)
+{
+    for (auto it = vehicles.Begin(); it != vehicles.End(); ++it)
+    {
+        Ptr<ConstantVelocityMobilityModel> mob =
+            (*it)->GetObject<ConstantVelocityMobilityModel>();
+        mob->SetVelocity(mob->GetVelocity());
+    }
+    Simulator::Schedule(interval, &ReportPositions, vehicles, interval);
 }
 
 // Optional event trace (--trace=file) for animate_trace.py. One event per line:
@@ -95,7 +114,7 @@ static void
 TraceSinkRx(uint32_t node, uint16_t port, Ptr<const Packet> p, const Address& from)
 {
     auto it = g_sendTime.find(p->GetUid());
-    double delayMs = it == g_sendTime.end() ? -1 : (Simulator::Now() - it->second).GetMilliSeconds();
+    double delayMs = it == g_sendTime.end() ? -1 : (Simulator::Now() - it->second).GetSeconds() * 1000;
     g_trace << "R," << Simulator::Now().GetSeconds() << "," << node << "," << port << ","
             << p->GetUid() << "," << delayMs << "\n";
 }
@@ -178,6 +197,8 @@ main(int argc, char* argv[])
     std::string csvFile = "vanet-results.csv";
     std::string traceFile = ""; // event trace for animate_trace.py, off by default
     double traceInterval = 0.1; // s, how often vehicle positions are traced
+    std::string netanimFile = "";  // NetAnim XML animation, off by default
+    double netanimStop = 30.0;     // s, NetAnim records until here (the file grows quickly)
 
     CommandLine cmd(__FILE__);
     cmd.AddValue("nVehicles", "Number of vehicles", nVehicles);
@@ -197,6 +218,8 @@ main(int argc, char* argv[])
     cmd.AddValue("csv", "CSV file the results row is appended to", csvFile);
     cmd.AddValue("trace", "Event trace file for animate_trace.py (empty = no trace)", traceFile);
     cmd.AddValue("traceInterval", "Interval between traced vehicle positions (s)", traceInterval);
+    cmd.AddValue("netanim", "NetAnim XML file (empty = no animation)", netanimFile);
+    cmd.AddValue("netanimStop", "Time NetAnim stops recording (s)", netanimStop);
     cmd.Parse(argc, argv);
 
     NS_ABORT_MSG_IF(nVehicles < 2, "need at least 2 vehicles");
@@ -301,6 +324,7 @@ main(int argc, char* argv[])
 
     Ptr<UniformRandomVariable> startJitter = CreateObject<UniformRandomVariable>();
     std::map<uint16_t, double> activeTime; // data port -> seconds the flow was sending
+    std::vector<std::pair<uint32_t, uint32_t>> flowEnds; // (sender, receiver) per flow
     for (uint32_t f = 0; f < nFlows; ++f)
     {
         uint32_t src = order[f];
@@ -325,6 +349,7 @@ main(int argc, char* argv[])
         srcApp.Start(Seconds(start));
         srcApp.Stop(Seconds(appStop));
         activeTime[port] = appStop - start;
+        flowEnds.emplace_back(src, dst);
 
         if (g_trace.is_open())
         {
@@ -338,6 +363,41 @@ main(int argc, char* argv[])
 
     FlowMonitorHelper flowHelper;
     Ptr<FlowMonitor> monitor = flowHelper.InstallAll();
+
+    // NetAnim: grey vehicles, orange senders, green receivers, labelled with their flow.
+    std::unique_ptr<AnimationInterface> anim;
+    if (!netanimFile.empty())
+    {
+        anim = std::make_unique<AnimationInterface>(netanimFile);
+        // No SetStartTime: AnimationInterface stops polling vehicle positions for good if
+        // its first poll falls before the start time, so NetAnim records from t = 0.
+        anim->SetStopTime(Seconds(netanimStop));
+        Simulator::Schedule(Seconds(0.25), &ReportPositions, vehicles, Seconds(0.25));
+        anim->SetMobilityPollInterval(Seconds(0.25));
+        anim->SetMaxPktsPerTraceFile(10000000);
+        std::vector<std::string> label(nVehicles);
+        for (uint32_t i = 0; i < nVehicles; ++i)
+        {
+            label[i] = "v" + std::to_string(i);
+            anim->UpdateNodeColor(i, 150, 150, 150);
+            anim->UpdateNodeSize(i, 4, 4);
+        }
+        for (uint32_t f = 0; f < flowEnds.size(); ++f)
+        {
+            auto [src, dst] = flowEnds[f];
+            label[src] += " TX-F" + std::to_string(f + 1);
+            label[dst] += " RX-F" + std::to_string(f + 1);
+            anim->UpdateNodeColor(dst, 30, 160, 60);
+        }
+        for (auto [src, dst] : flowEnds)
+        {
+            anim->UpdateNodeColor(src, 235, 104, 52);
+        }
+        for (uint32_t i = 0; i < nVehicles; ++i)
+        {
+            anim->UpdateNodeDescription(i, label[i]);
+        }
+    }
 
     Simulator::Stop(Seconds(simTime));
     Simulator::Run();

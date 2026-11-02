@@ -17,5 +17,11 @@ results-348/
 # Second parameter variation (run data and plots)
 results/plots2/
 
-# Animations are large; only the PNG snapshots are committed
+# Animations and NetAnim files are large; only the PNG snapshots are committed.
+# make_animations.sh regenerates everything else.
+results/animations/**/*.gif
 results/animations/*.gif
+results/animations/netanim/
+results/animations/traces/
+results/animations/logs/
+results/animations/jobs.txt

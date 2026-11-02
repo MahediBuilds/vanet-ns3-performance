@@ -6,8 +6,12 @@ put on air (one arc per hop), AODV control frames and packets reaching their
 receiver. Writes an animated GIF (or MP4 if the name ends in .mp4 and ffmpeg
 is installed) and optionally a PNG snapshot.
 
-Usage: python3 animate_trace.py TRACE OUT.gif [--start 9] [--end 60] [--step 0.25]
-                                [--fps 8] [--snapshot T OUT.png]
+Usage: python3 animate_trace.py TRACE OUT.gif [--sweep density|speed|load|range]
+                                [--start 9] [--end 60] [--step 0.25] [--fps 8]
+                                [--snapshot T OUT.png]
+
+--sweep labels the animation as one test point of that sweep: the title names the
+sweep, the graph it belongs to and the varied value, and lists the fixed settings.
 """
 import argparse
 import csv
@@ -40,6 +44,17 @@ LANE_H = 1.0  # drawing units per lane
 ARC_MAX = 3.2  # tallest hop arc, drawing units
 ROW_H = 4 * LANE_H + ARC_MAX + 1.6
 
+# sweep -> (title, graph in results/plots, trace key that is varied, value label)
+SWEEPS = {
+    "density": ("Vehicle density sweep", "Density vs PDR", "nVehicles", "{:g} vehicles"),
+    "speed": ("Vehicle speed sweep", "Speed vs end-to-end delay", "speed", "{:g} m/s mean speed"),
+    "load": ("Traffic load sweep", "Offered load vs throughput", "dataRateKbps", "{:g} kbit/s per flow"),
+    "range": ("Communication range sweep", "Range vs PDR", "range", "{:g} m communication range"),
+}
+SETTINGS = [("nVehicles", "{:g} vehicles"), ("speed", "{:g} m/s"), ("dataRateKbps", "{:g} kbit/s per flow"),
+            ("range", "{:g} m range")]
+PAYLOAD_BITS = 512 * 8
+
 
 def load(path):
     meta, flows = {}, []
@@ -71,6 +86,29 @@ def load(path):
     return meta, flows, times, xy, events
 
 
+def run_metrics(meta, flows, ev):
+    """Final PDR (%), mean delay (ms) and throughput (kbit/s per flow) of the run,
+    computed the same way as vanet-highway.cc does from FlowMonitor."""
+    sent, recv = len(ev["S"]), len(ev["R"])
+    pdr = 100 * recv / sent if sent else float("nan")
+    delay = float(np.mean([r[2] for r in ev["R"]])) if recv else float("nan")
+    active = sum(meta["appStop"] - f["start"] for f in flows) / len(flows)
+    thr = recv * PAYLOAD_BITS / active / 1000 / len(flows)
+    return pdr, delay, thr
+
+
+def labels(meta, sweep):
+    """Title and fixed-settings line for a run, naming the sweep if given."""
+    if sweep is None:
+        title = "ns-3 VANET highway · AODV over 802.11p"
+        fixed = " · ".join(fmt.format(meta[k]) for k, fmt in SETTINGS)
+    else:
+        name, graph, key, fmt = SWEEPS[sweep]
+        title = f"{name}: {fmt.format(meta[key])}"
+        fixed = f"graph: {graph} · fixed: " + ", ".join(f.format(meta[k]) for k, f in SETTINGS if k != key)
+    return title, f"{fixed} · 10 UDP flows · seed {int(meta['run'])}"
+
+
 def screen(xy, meta):
     """Road coordinates -> drawing coordinates (row layout, westbound lanes on top)."""
     seg = meta["highwayLength"] / ROWS
@@ -100,6 +138,7 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("trace")
     ap.add_argument("out")
+    ap.add_argument("--sweep", choices=SWEEPS, help="label the run as a test point of this sweep")
     ap.add_argument("--start", type=float, default=9.0)
     ap.add_argument("--end", type=float, default=60.0)
     ap.add_argument("--step", type=float, default=0.25, help="simulated seconds per frame")
@@ -120,8 +159,8 @@ def main():
     R_t = np.sort(R[:, 0]) if len(R) else np.zeros(0)
     rerr_mask = np.array([c[2] == "RERR" for c in C], dtype=bool)
 
-    fig = plt.figure(figsize=(12, 6.4), dpi=100, facecolor=SURFACE)
-    gs = fig.add_gridspec(2, 1, height_ratios=[3.3, 1], hspace=0.28, left=0.05, right=0.985, top=0.9, bottom=0.08)
+    fig = plt.figure(figsize=(12, 6.6), dpi=100, facecolor=SURFACE)
+    gs = fig.add_gridspec(2, 1, height_ratios=[3.3, 1], hspace=0.28, left=0.05, right=0.985, top=0.875, bottom=0.08)
     ax = fig.add_subplot(gs[0])
     ax2 = fig.add_subplot(gs[1])
     for a in (ax, ax2):
@@ -155,9 +194,9 @@ def main():
     dlv = ax.scatter([], [], s=230, marker="o", facecolors="none", edgecolors=DELIVERED, linewidths=2.2, zorder=6)
     rerr = ax.scatter([], [], s=70, marker="x", c=RERR, linewidths=2.2, zorder=6)
 
-    title = fig.text(0.05, 0.955, "", fontsize=15, fontweight="bold", color=INK, va="center")
-    sub = fig.text(0.05, 0.918, "", fontsize=9.5, color=INK2, va="center")
-    stats = fig.text(0.985, 0.918, "", fontsize=9.5, color=INK, va="center", ha="right", family="monospace")
+    title = fig.text(0.05, 0.958, "", fontsize=15, fontweight="bold", color=INK, va="center")
+    sub = fig.text(0.05, 0.922, "", fontsize=9.5, color=INK2, va="center")
+    final = fig.text(0.985, 0.958, "", fontsize=10, color=INK, va="center", ha="right")
 
     handles = [
         plt.Line2D([], [], marker="s", ls="", color=VEHICLE, label="vehicle"),
@@ -189,10 +228,13 @@ def main():
     ax2.grid(axis="y", color=GRID, lw=0.6, alpha=0.7)
     ax2.legend(loc="upper right", frameon=False, fontsize=8.5, labelcolor=INK2, ncol=2)
     cursor = ax2.axvline(0, color=INK, lw=1.2)
+    stats = ax2.set_title("", loc="left", fontsize=9.5, color=INK, family="monospace", pad=6)
 
-    title.set_text(f"ns-3 VANET highway · AODV over 802.11p · run {int(meta['run'])}")
-    sub.set_text(f"{int(meta['nVehicles'])} vehicles · mean {meta['speed']:g} m/s · "
-                 f"{meta['dataRateKbps']:g} kbit/s per flow · {rng:g} m range · 10 UDP flows")
+    t_text, s_text = labels(meta, args.sweep)
+    title.set_text(t_text)
+    sub.set_text(s_text)
+    pdr, delay, thr = run_metrics(meta, flows, ev)
+    final.set_text(f"whole run: PDR {pdr:.1f}% · delay {delay:.0f} ms · {thr:.1f} kbit/s per flow")
 
     def at(t):
         i = min(np.searchsorted(times, t), len(times) - 1)
