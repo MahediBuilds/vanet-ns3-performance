@@ -27,3 +27,7 @@ results/animations/logs/
 results/animations/jobs.txt
 
 FINAL/Optimal.png
+
+# Optimal-configuration study: per-run logs and job lists (CSV results are committed)
+results/optimal/logs/
+results/optimal/jobs*.txt
