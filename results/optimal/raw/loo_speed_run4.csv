@@ -1,0 +1,2 @@
+experiment,nVehicles,speed,dataRateKbps,range,run,txPackets,rxPackets,pdr,delayMs,throughputKbps,lossRate
+loo_speed,80,20,50,250,4,10316,4952,48.0031,13.1862,23.987,51.9969

@@ -1,0 +1,2 @@
+experiment,nVehicles,speed,dataRateKbps,range,run,txPackets,rxPackets,pdr,delayMs,throughputKbps,lossRate
+baseline,60,20,100,150,3,20602,7101,34.4675,55.4567,34.4837,65.5325
