@@ -242,20 +242,6 @@ def page_break():
     doc.add_paragraph().add_run().add_break(WD_BREAK.PAGE)
 
 
-def border_section(s):
-    sectPr = s._sectPr
-    pb = OxmlElement("w:pgBorders")
-    pb.set(qn("w:offsetFrom"), "page")
-    for side in ("top", "left", "bottom", "right"):
-        e = OxmlElement(f"w:{side}")
-        e.set(qn("w:val"), "single")
-        e.set(qn("w:sz"), "12")
-        e.set(qn("w:space"), "24")
-        e.set(qn("w:color"), "000000")
-        pb.append(e)
-    sectPr.append(pb)
-
-
 def page_number_footer(s, start):
     s.footer.is_linked_to_previous = False
     p = s.footer.paragraphs[0]
@@ -282,87 +268,118 @@ def page_number_footer(s, start):
 TEAM = [("Zain Mahedi", "1WA23CS056"), ("Thanish A Shetty", "1WA23CS017"),
         ("Vaibhav S Keerthi", "1WA23CS028"), ("Vikas Shashi", "1WA23CS043")]
 TITLE = "Performance Analysis of VANETs for Traffic Efficiency and Road Traffic Safety Using NS-3"
-GUIDE, GUIDE_ROLE, HOD = "Dr. K. Panimozhi", "Associate Professor", "Dr. Kavitha Sooda"
+GUIDE, GUIDE_ROLE = "Dr. Panimozhi K", "Associate Professor"
+HOD, PRINCIPAL = "Dr. Sreelatha R", "Dr. Bheemsha Arya"
+COURSE, COURSE_CODE = "Network Programming", "23CS7PCNWP"
+SEMESTER, SUBMITTED = "2025-26", "30/10/2026"
 
-# --------------------------------------------------------------------------- cover page
-border_section(sec)
-para("B.M.S. COLLEGE OF ENGINEERING", align=WD_ALIGN_PARAGRAPH.CENTER, size=20, bold=True, after=2, before=12)
-para("(Autonomous Institute, Affiliated to VTU)", align=WD_ALIGN_PARAGRAPH.CENTER, size=14, bold=True,
-     after=0, spacing=1.2)
-para("Bull Temple Road, Basavanagudi, Bengaluru - 560019", align=WD_ALIGN_PARAGRAPH.CENTER, size=14, bold=True,
-     after=8, spacing=1.2)
-p = doc.add_paragraph()
-p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-p.add_run().add_picture(LOGO, width=Inches(1.15))
-para("Presentation Report under Alternate Assessment Tool (AAT)", align=WD_ALIGN_PARAGRAPH.CENTER, after=0)
-para("Course: Network Programming", align=WD_ALIGN_PARAGRAPH.CENTER, after=6)
-para(TITLE, align=WD_ALIGN_PARAGRAPH.CENTER, size=16, bold=True, italic=True, after=8, spacing=1.2)
-para("Submitted in partial fulfilment of the requirements for the award of degree",
-     align=WD_ALIGN_PARAGRAPH.CENTER, after=2)
-for t in ("BACHELOR OF ENGINEERING", "IN", "COMPUTER SCIENCE AND ENGINEERING"):
-    para(t, align=WD_ALIGN_PARAGRAPH.CENTER, bold=True, after=0)
-para("By", align=WD_ALIGN_PARAGRAPH.CENTER, before=6, after=0)
-for name, usn in TEAM:
+# The three front pages (title, declaration, certificate) follow the department's AAT format:
+# no page border, no page number, wider side margins than the body.
+FRONT_MARGIN = 1.25
+FRONT_W = 8.27 - 2 * FRONT_MARGIN
+sec.left_margin = sec.right_margin = Inches(FRONT_MARGIN)
+sec.top_margin = Inches(0.7)
+C = WD_ALIGN_PARAGRAPH.CENTER
+
+
+def college_header(one_line_dept=False):
+    para("B.M.S. COLLEGE OF ENGINEERING", align=C, size=13, bold=True, after=2, spacing=1.15)
+    if one_line_dept:
+        para("DEPARTMENT OF COMPUTER SCIENCE AND ENGINEERING", align=C, size=14, bold=True, after=8, spacing=1.15)
+    else:
+        para("DEPARTMENT OF COMPUTER SCIENCE AND ENGINEERING", align=C, size=15, bold=True, after=6, spacing=1.4)
+
+
+def logo():
     p = doc.add_paragraph()
-    p.paragraph_format.tab_stops.add_tab_stop(Inches(1.2), WD_TAB_ALIGNMENT.LEFT)
-    p.paragraph_format.tab_stops.add_tab_stop(Inches(3.6), WD_TAB_ALIGNMENT.LEFT)
-    p.paragraph_format.space_after = Pt(0)
-    p.paragraph_format.line_spacing = 1.15
-    runs(p, f"\t{name}\t{usn}")
-para("Under the guidance of", align=WD_ALIGN_PARAGRAPH.CENTER, bold=True, before=10, after=0)
-para(GUIDE, align=WD_ALIGN_PARAGRAPH.CENTER, size=13, bold=True, after=0)
-para(GUIDE_ROLE, align=WD_ALIGN_PARAGRAPH.CENTER, after=8)
-para("Department of Computer Science and Engineering", align=WD_ALIGN_PARAGRAPH.CENTER, size=16, bold=True,
-     after=0)
-para("2026-2027", align=WD_ALIGN_PARAGRAPH.CENTER, size=15, bold=True, after=0)
+    p.alignment = C
+    p.paragraph_format.space_after = Pt(4)
+    p.add_run().add_picture(LOGO, width=Inches(1.75))
 
-# --------------------------------------------------------------------------- certificate
-s2 = doc.add_section(WD_SECTION.NEW_PAGE)
-s2._sectPr.remove(s2._sectPr.find(qn("w:pgBorders")))
-hdr = doc.add_table(rows=1, cols=2)
-hdr.autofit = False
-hdr.columns[0].width = Inches(1.2)
-hdr.columns[1].width = Inches(5.0)
-c0, c1 = hdr.rows[0].cells
-c0.width, c1.width = Inches(1.2), Inches(5.0)
-c0.paragraphs[0].add_run().add_picture(LOGO, width=Inches(0.85))
-c1.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
-for i, (t, sz) in enumerate((("B.M.S. COLLEGE OF ENGINEERING", 12), ("( Autonomous Institute, Affiliated to VTU )", 10),
-                             ("Bull Temple Road, Basavanagudi,", 10), ("Bengaluru - 560019", 10))):
-    pp = c1.paragraphs[0] if i == 0 else c1.add_paragraph()
-    pp.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    pp.paragraph_format.space_after = Pt(1)
-    pp.paragraph_format.line_spacing = 1.0
-    runs(pp, t, size=sz, bold=True)
-para("", after=6)
-para("Department of Computer Science and Engineering", align=WD_ALIGN_PARAGRAPH.CENTER, size=14, bold=True,
-     after=10)
-para("C E R T I F I C A T E", align=WD_ALIGN_PARAGRAPH.CENTER, size=14, bold=True, after=10)
-names = ", ".join(f"<b>{n} ({u})</b>" for n, u in TEAM)
-para(f"This is to certify that the Presentation Report under Alternate Assessment Tool entitled "
-     f"“<b><i>{TITLE}</i></b>” is a bona-fide work carried out by {names} in partial fulfilment for the "
-     f"award of degree of Bachelor of Engineering in <b>Computer Science and Engineering</b> from "
-     f"<b>Visvesvaraya Technological University, Belagavi</b> during the year <b>2026-2027</b>. It is certified "
-     f"that all corrections/suggestions indicated for Internal Assessments have been incorporated in the report "
-     f"deposited in the departmental library. The Presentation Report has been approved as it satisfies the "
-     f"academic requirements in respect of AAT prescribed for the Bachelor of Engineering Degree.", size=11,
-     spacing=1.3)
-for _ in range(7):
-    para("", after=6)
-p = doc.add_paragraph()
-p.paragraph_format.tab_stops.add_tab_stop(Inches(TEXT_W), WD_TAB_ALIGNMENT.RIGHT)
-p.paragraph_format.line_spacing = 1.0
-p.paragraph_format.space_after = Pt(0)
-runs(p, f"{GUIDE}\t{HOD}", size=11, bold=True)
-p = doc.add_paragraph()
-p.paragraph_format.tab_stops.add_tab_stop(Inches(TEXT_W), WD_TAB_ALIGNMENT.RIGHT)
-p.paragraph_format.line_spacing = 1.0
-runs(p, "Course Coordinator\tProfessor and HOD", size=11, bold=True)
+
+def names_with_usn():
+    return ", ".join(f"{n} ({u})" for n, u in TEAM)
+
+
+# --- page 1: title
+college_header()
+logo()
+para("ALTERNATE ASSESSMENT REPORT", align=C, size=16, bold=True, after=0, spacing=1.3)
+para("on", align=C, italic=True, after=0)
+para(COURSE.upper(), align=C, size=16, bold=True, after=8, spacing=1.3)
+para(f'"{TITLE}"', align=C, size=14, bold=True, after=10, spacing=1.5)
+para("Submitted by", align=C, italic=True, after=2, spacing=1.15)
+for i, (name, usn) in enumerate([("<b>Name</b>", "<b>Register Number (USN)</b>")] + TEAM):
+    p = doc.add_paragraph()
+    pf = p.paragraph_format
+    pf.tab_stops.add_tab_stop(Inches(0.37), WD_TAB_ALIGNMENT.LEFT)
+    pf.tab_stops.add_tab_stop(Inches(3.35), WD_TAB_ALIGNMENT.LEFT)
+    pf.space_after = Pt(0)
+    pf.line_spacing = 1.15
+    runs(p, f"\t{name}\t{usn}")
+para("", after=6, spacing=1.0)
+for t in (f"Course Title: {COURSE}", f"Course Code: {COURSE_CODE}", "Department of Computer Science and Engineering"):
+    para(t, align=C, after=1, spacing=1.3)
+para("Faculty in Charge", align=C, italic=True, before=10, after=2, spacing=1.3)
+para(f"{GUIDE}, {GUIDE_ROLE}", align=C, bold=True, after=10, spacing=1.3)
+para("B.M.S. College of Engineering, Bangalore - 560 019", align=C, bold=True, after=4, spacing=1.3)
+para(f"Academic Semester: 7<sup>th</sup> sem-{SEMESTER}", align=C, after=4, spacing=1.3)
+para(f"Date of Submission: {SUBMITTED}", align=C, after=0, spacing=1.3)
+
+# --- page 2: declaration
+doc.add_section(WD_SECTION.NEW_PAGE)
+college_header()
+logo()
+para("DECLARATION", align=C, size=15, bold=True, italic=True, before=6, after=6)
+para(f"We, {names_with_usn()} students of 7th Semester, B.E, Department of Computer Science and Engineering, "
+     f"B.M.S. College of Engineering, Bangalore, hereby declare that this assignment work entitled \"{TITLE}\" has "
+     f"been carried out by us under the guidance of <b>{GUIDE},</b> {GUIDE_ROLE}, Department of CSE, B.M.S. College "
+     f"of Engineering, Bangalore during the academic semester {SEMESTER}, in many respects. We also declare that to "
+     "the best of our knowledge and belief, the assignment reported here isn't from part of any other report by any "
+     "other students, at least for now.", after=8)
+para("Signature of the Candidates", align=WD_ALIGN_PARAGRAPH.LEFT, bold=True, after=0, spacing=1.15)
+for n, u in TEAM:
+    para(f"{n} ({u})", align=WD_ALIGN_PARAGRAPH.LEFT, after=0)
+
+# --- page 3: certificate
+doc.add_section(WD_SECTION.NEW_PAGE)
+college_header(one_line_dept=True)
+para("CERTIFICATE", align=C, size=16, bold=True, after=6)
+para(f"This is normally to certify that the Alternate Assessment report entitled \"<b>{TITLE}</b>\" is a bonafide "
+     f"work carried out by {names_with_usn()} in partial fulfilment of the needs of the course <b>{COURSE}</b> "
+     f"({COURSE_CODE}), under my supervision during the academic semester {SEMESTER}, to a significant degree.",
+     spacing=1.6, after=36)
+sig = doc.add_table(rows=1, cols=3)
+sig.autofit = False
+mar = OxmlElement("w:tblCellMar")  # no cell padding, so the columns line up with the text margin
+for side in ("left", "right"):
+    m = OxmlElement(f"w:{side}")
+    m.set(qn("w:w"), "0")
+    m.set(qn("w:type"), "dxa")
+    mar.append(m)
+sig._tbl.tblPr.append(mar)
+for cell, (label, name, role) in zip(sig.rows[0].cells, (
+        ("Guide Signature", GUIDE, f"{GUIDE_ROLE}, Dept. of CSE"),
+        ("HoD Signature", HOD, "Professor and Head, Dept. of CSE"),
+        ("Principal Signature", PRINCIPAL, "Principal, B.M.S. College of Engineering"))):
+    cell.width = Inches(FRONT_W / 3)
+    for i, (text, size, bold) in enumerate(((label, 11, True), (name, 12, True), (role, 11, False))):
+        pp = cell.paragraphs[0] if i == 0 else cell.add_paragraph()
+        pp.paragraph_format.space_after = Pt(1)
+        pp.paragraph_format.line_spacing = 1.0
+        runs(pp, text, size=size, bold=bold)
+for col in sig.columns:
+    col.width = Inches(FRONT_W / 3)
+para("Name and signature of Examiners along with date", align=WD_ALIGN_PARAGRAPH.LEFT, bold=True, before=24,
+     after=8)
+for k in (1, 2):
+    para(f"Examiner {k}: ______________________________      Date: ______________",
+         align=WD_ALIGN_PARAGRAPH.LEFT, after=6)
 
 # --------------------------------------------------------------------------- table of contents
 s3 = doc.add_section(WD_SECTION.NEW_PAGE)
-page_number_footer(s3, 3)
-s2.footer.is_linked_to_previous = False
+s3.left_margin = s3.right_margin = s3.top_margin = Inches(1)
+page_number_footer(s3, 4)
 
 CHAPTERS = [
     ("Abstract", []), ("Objectives", []), ("Introduction", []), ("Literature review", []), ("Research gap", []),
