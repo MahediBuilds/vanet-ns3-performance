@@ -7,7 +7,7 @@ Usage: python3 plot_results.py [results_dir] [plots_dir]
 Writes into results_dir:
   all_runs.csv   every run in one file
   summary.csv    mean and standard deviation of each metric per test point
-  plots/*.png    the four graphs (or plots_dir/*.png if given)
+  plots/*.png    the five graphs (or plots_dir/*.png if given)
 """
 import csv
 import glob
@@ -37,6 +37,7 @@ GRAPHS = [
     ("speed", "delayMs", "Average end-to-end delay (ms)", "speed_vs_delay.png"),
     ("load", "throughputKbps", "Delivered throughput per flow (kbit/s)", "load_vs_throughput.png"),
     ("range", "pdr", "Packet delivery ratio (%)", "range_vs_pdr.png"),
+    ("density", "lossRate", "Packet loss rate (%)", "density_vs_loss.png"),
 ]
 
 
@@ -101,7 +102,7 @@ def plot(summary, plots_dir):
         ax.errorbar(xs, means, yerr=stds, marker="o", capsize=4, label="AODV")
         if exp == "load":
             ax.plot(xs, xs, "--", color="grey", label="offered = delivered")
-        if metric == "pdr":
+        if metric in ("pdr", "lossRate"):
             ax.set_ylim(0, 105)
         ax.set_xlabel(SWEEPS[exp][1])
         ax.set_ylabel(ylabel)
