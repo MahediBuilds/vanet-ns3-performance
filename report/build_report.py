@@ -282,7 +282,7 @@ def page_number_footer(s, start):
 TEAM = [("Zain Mahedi", "1WA23CS056"), ("Thanish A Shetty", "1WA23CS017"),
         ("Vaibhav S Keerthi", "1WA23CS028"), ("Vikas Shashi", "1WA23CS043")]
 TITLE = "Performance Analysis of VANETs for Traffic Efficiency and Road Traffic Safety Using NS-3"
-GUIDE, GUIDE_ROLE, HOD = "Dr. Nandini Vineeth", "Professor", "Dr. Kavitha Sooda"
+GUIDE, GUIDE_ROLE, HOD = "Dr. K. Panimozhi", "Associate Professor", "Dr. Kavitha Sooda"
 
 # --------------------------------------------------------------------------- cover page
 border_section(sec)
