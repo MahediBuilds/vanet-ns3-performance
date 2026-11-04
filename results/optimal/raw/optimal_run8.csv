@@ -1,0 +1,2 @@
+experiment,nVehicles,speed,dataRateKbps,range,run,txPackets,rxPackets,pdr,delayMs,throughputKbps,lossRate
+optimal,80,10,50,250,8,10324,5904,57.1871,24.1672,28.5868,42.8129
