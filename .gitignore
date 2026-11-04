@@ -31,3 +31,9 @@ FINAL/Optimal.png
 # Optimal-configuration study: per-run logs and job lists (CSV results are committed)
 results/optimal/logs/
 results/optimal/jobs*.txt
+
+# Reference report from another team (used only as a layout template; not ours to publish)
+Adaptive_QoS_MANET_Report.pdf
+
+# Report build intermediates (report/build.sh); the final .docx and .pdf are committed
+report/build/

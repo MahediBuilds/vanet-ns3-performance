@@ -22,7 +22,8 @@ Simulator," *Promet – Traffic & Transportation*, vol. 32, no. 2, pp. 255–268
 | [`animate_trace.py`](animate_trace.py) | Animates one traced run (`--trace`) as a GIF/MP4 of vehicles, routes and packets |
 | [`animate_sweep.py`](animate_sweep.py) | Animates all test points of one sweep side by side |
 | [`make_animations.sh`](make_animations.sh) | Runs every sweep point with `--trace` and `--netanim` and draws all animations |
-| [`results/`](results) | Our results: `all_runs.csv`, `summary.csv` and the four graphs in `plots/` |
+| [`results/`](results) | Our results: `all_runs.csv`, `summary.csv` and the five graphs in `plots/` |
+| [`report/`](report) | AAT report ([PDF](report/VANET_NS3_AAT_Report.pdf), [Word](report/VANET_NS3_AAT_Report.docx)) and the scripts that build it from `results/` (`bash report/build.sh`; needs LibreOffice and `pip install -r report/requirements.txt`) |
 
 ## Simulation scenario
 
@@ -67,6 +68,7 @@ Each test point runs with 5 seeds (`--RngRun=1..5`). The graphs show the mean wi
 |---|---|
 | ![Density vs PDR](results/plots/density_vs_pdr.png) | ![Speed vs delay](results/plots/speed_vs_delay.png) |
 | ![Load vs throughput](results/plots/load_vs_throughput.png) | ![Range vs PDR](results/plots/range_vs_pdr.png) |
+| ![Density vs packet loss](results/plots/density_vs_loss.png) | |
 
 Mean ± std over 5 seeds (full table in [`results/summary.csv`](results/summary.csv)):
 
