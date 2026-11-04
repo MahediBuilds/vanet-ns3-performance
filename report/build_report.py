@@ -298,7 +298,8 @@ def logo():
 
 
 def names_with_usn():
-    return ", ".join(f"{n} ({u})" for n, u in TEAM)
+    items = [f"{n} ({u})" for n, u in TEAM]
+    return ", ".join(items[:-1]) + " and " + items[-1]
 
 
 # --- page 1: title
@@ -331,12 +332,12 @@ doc.add_section(WD_SECTION.NEW_PAGE)
 college_header()
 logo()
 para("DECLARATION", align=C, size=15, bold=True, italic=True, before=6, after=6)
-para(f"We, {names_with_usn()} students of 7th Semester, B.E, Department of Computer Science and Engineering, "
+para(f"We, {names_with_usn()}, students of 7th Semester, B.E., Department of Computer Science and Engineering, "
      f"B.M.S. College of Engineering, Bangalore, hereby declare that this assignment work entitled \"{TITLE}\" has "
      f"been carried out by us under the guidance of <b>{GUIDE},</b> {GUIDE_ROLE}, Department of CSE, B.M.S. College "
-     f"of Engineering, Bangalore during the academic semester {SEMESTER}, in many respects. We also declare that to "
-     "the best of our knowledge and belief, the assignment reported here isn't from part of any other report by any "
-     "other students, at least for now.", after=8)
+     f"of Engineering, Bangalore, during the academic semester {SEMESTER}. We also declare that, to "
+     "the best of our knowledge and belief, the work reported here has not been submitted as part of any other "
+     "report by any other student.", after=8)
 para("Signature of the Candidates", align=WD_ALIGN_PARAGRAPH.LEFT, bold=True, after=0, spacing=1.15)
 for n, u in TEAM:
     para(f"{n} ({u})", align=WD_ALIGN_PARAGRAPH.LEFT, after=0)
@@ -345,9 +346,9 @@ for n, u in TEAM:
 doc.add_section(WD_SECTION.NEW_PAGE)
 college_header(one_line_dept=True)
 para("CERTIFICATE", align=C, size=16, bold=True, after=6)
-para(f"This is normally to certify that the Alternate Assessment report entitled \"<b>{TITLE}</b>\" is a bonafide "
-     f"work carried out by {names_with_usn()} in partial fulfilment of the needs of the course <b>{COURSE}</b> "
-     f"({COURSE_CODE}), under my supervision during the academic semester {SEMESTER}, to a significant degree.",
+para(f"This is to certify that the Alternate Assessment report entitled \"<b>{TITLE}</b>\" is a bonafide "
+     f"work carried out by {names_with_usn()} in partial fulfilment of the requirements of the course <b>{COURSE}</b> "
+     f"({COURSE_CODE}), under my supervision during the academic semester {SEMESTER}.",
      spacing=1.6, after=36)
 sig = doc.add_table(rows=1, cols=3)
 sig.autofit = False
