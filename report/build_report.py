@@ -450,50 +450,49 @@ para("Vehicular ad hoc networks (VANETs) let cars exchange safety and traffic me
 chapter(2, "Objectives")
 para("The aims of this assessment were:")
 for t in [
-    "To understand socket programming basics as used in NS-3: UDP senders and receivers, binding to ports and a "
-    "callback that runs every time a packet arrives.",
-    "To build a highway VANET in NS-3 in which vehicles move in both directions, route with AODV over an IEEE "
-    "802.11p radio and exchange UDP traffic.",
-    "To measure packet delivery ratio, end-to-end delay, throughput and packet loss rate for the data traffic, "
-    "excluding the AODV control traffic.",
+    "To learn how socket programming works in NS-3: sending and receiving over UDP, binding a socket to a port and "
+    "handling each arriving packet in a receive callback.",
+    "To build a highway VANET in NS-3 with traffic in both directions, using AODV routing over an IEEE 802.11p "
+    "radio and UDP for the data.",
+    "To measure packet delivery ratio, end-to-end delay, throughput and packet loss rate on the data flows only, "
+    "leaving out the AODV control traffic.",
     "To study the effect of vehicle density, vehicle speed, traffic load and communication range one at a time, "
     "with several random seeds and error bars.",
     "To check that the results are correct and repeatable: fix bugs found on the way, repeat runs and confirm the "
     "trends with a second, independent parameter variation.",
-    "To visualise what happens inside a run (vehicle positions, data hops, route discovery and route errors) with "
-    "packet-level traces, animations and NetAnim.",
-    "To find the best value of each factor, measure the combined optimal configuration in the simulator and check "
-    "how much each factor contributes to it.",
+    "To see inside individual runs, using packet-level traces, animations and NetAnim to show vehicle positions, "
+    "data hops, route discovery and route errors.",
+    "To find the best tested value of each factor, run those values together in the simulator and work out how "
+    "much each factor adds to the combined result.",
 ]:
     bullet(t)
 
 # =========================================================================== CHAPTER 3
 chapter(3, "Introduction")
 section("3.1 Network Programming and the Application")
-para("Network programming means writing programs that run on different devices and send messages to each other. "
-     "Our application is communication between vehicles. Cars that can talk to each other can warn the cars behind "
-     "them about a sudden brake, an accident or a traffic jam, and can share their speed and position so that "
-     "traffic flows more smoothly. These uses fall into two groups: <b>road traffic safety</b> (warnings that must "
-     "arrive quickly and reliably) and <b>traffic efficiency</b> (information that helps vehicles choose speed and "
-     "route) [2], [3].")
-para("Every vehicle carries a small radio and acts as a router for the others, so a message can hop from car to "
-     "car until it reaches the destination. Such a network is called a vehicular ad hoc network (VANET). Testing "
-     "this on a real road needs many cars and is unsafe, so we used a simulator. A program describes the road, the "
-     "vehicles and their radios, and the simulator records exactly what happens to every packet. We follow the "
-     "evaluation framework of Malnar and Jevtić [1], which uses NS-3 to measure how a VANET performs as the "
-     "conditions change.")
+para("Network programming is about writing programs that run on separate devices and exchange messages. In our "
+     "project those devices are vehicles. A car can warn the cars behind it about sudden braking, an accident or a "
+     "traffic jam, and it can share its speed and position to help traffic flow. The first kind of use is <b>road "
+     "traffic safety</b>, where warnings have to arrive quickly and reliably. The second is <b>traffic "
+     "efficiency</b>, where the information helps vehicles choose a speed and route [2], [3].")
+para("In a vehicular ad hoc network (VANET), each vehicle has a small radio and also forwards traffic for other "
+     "vehicles, so a message can travel from car to car until it reaches its destination. We studied this in a "
+     "simulator because a run can be repeated exactly with the same seed and every packet can be followed. A program "
+     "defines the road, the vehicles and their radios. We follow the evaluation framework of Malnar and Jevtić [1], "
+     "who use NS-3 to measure how VANET performance changes with the conditions.")
 section("3.2 Sockets, Protocols and System Calls")
-para("A socket is the standard way for a program to send and receive data. On Linux, a program creates a socket "
+para("A socket is the standard interface a program uses to send and receive network data. On Linux, a program creates a socket "
      "and uses system calls such as <i>socket()</i>, <i>bind()</i>, <i>sendto()</i> and <i>recvfrom()</i> [22], "
      "[23]. NS-3 has a Socket class that works the same way [24]. In our scenario every sender runs an NS-3 "
      "OnOffApplication. It creates a UDP socket, connects it to the receiver's address and port and calls "
-     "<i>Send()</i> at a constant rate. Every receiver runs a PacketSink, which binds a UDP socket to its port and "
-     "registers a receive callback that runs whenever a packet arrives.")
-para("TCP resends lost data and slows down when the network is busy, which adds delay that a safety warning "
-     "cannot afford. UDP sends each packet once without waiting for an acknowledgement. A late warning is useless, "
-     "so vehicular messages are normally sent over UDP, and all our data flows use UDP. The routing protocol is "
-     "itself a network program: AODV sends its route requests, replies and errors as UDP packets on port 654, "
-     "using the same sockets and the same radio channel as the data.")
+     "<i>Send()</i> at a constant rate. Each receiver runs a PacketSink, which binds a UDP socket to its port and "
+     "registers a callback that is called for every arriving packet.")
+para("TCP retransmits lost data and lowers its sending rate when the network is congested. Both add delay, and "
+     "safety applications need delays of the order of 100 ms or less [3], [4]. UDP sends each packet once and does "
+     "not wait for an acknowledgement, so we use it for all our data flows. This is a choice made for our "
+     "simulation: real DSRC safety messages normally use the WAVE Short Message Protocol of IEEE 1609.3 instead of "
+     "UDP/IP [4]. AODV is a network program too. It sends its route requests, replies and errors as UDP packets on "
+     "port 654, over the same radio channel as the data.")
 section("3.3 Vehicular Ad Hoc Networks and IEEE 802.11p")
 para("A VANET has no fixed access point. Vehicles move fast, often in opposite directions, so the links between "
      "them last only a few seconds and the topology changes all the time [2], [9]. On a highway the network is "
@@ -586,21 +585,23 @@ LIT = [
 table("Summary of the reviewed literature", ["Ref.", "Work (year)", "Main contribution", "Relevance to this work"],
       [list(r) for r in LIT], [0.5, 1.75, 2.15, 1.85], align=["C", "L", "L", "L"])
 para("In short, the effects of mobility, density and load on ad hoc routing are well known in general, and NS-3 "
-     "offers a framework to measure them. But many studies report single runs, vary one factor without asking "
-     "whether the best values work together, and use the older 802.11p (wave) module that is no longer in current "
-     "ns-3.")
+     "offers a framework to measure them. However, [1] and [10] change one condition at a time, which does not show "
+     "whether the best values work together, and the <i>wave</i> module that provided 802.11p in older ns-3 releases "
+     "is no longer in current ns-3.")
 
 # =========================================================================== CHAPTER 5
 chapter(5, "Research gap")
-para("The literature review shows these gaps:")
+para("Chapter 4 points to four gaps:")
 numbered([
-    "<b>Single runs.</b> Many simulation studies report one run per setting. With mobile vehicles the result "
-    "depends strongly on where the vehicles start, so a single run can show a trend that is not real.",
-    "<b>Factors studied alone.</b> Density, speed, load and range are usually varied one at a time [1], [10]. "
-    "Whether the best value of each factor still helps when the others are also at their best is rarely measured; "
-    "it is often assumed that the gains simply add up.",
-    "<b>Current tools.</b> The ns-3 wave module that provided the 802.11p MAC has been removed, so there are few "
-    "open, reproducible 802.11p set-ups for current ns-3 versions.",
+    "<b>Single runs.</b> One run per setting is not enough for a mobile network, because the result depends strongly "
+    "on where the vehicles start. In our density sweep, seed 1 gives 40.3% PDR at 100 vehicles, while the mean over "
+    f"five seeds is {f1(S[('density', 100.0)]['pdr_mean'])}% (Section 9.3).",
+    "<b>Factors studied alone.</b> Density, speed, load and range are usually varied one at a time [1], [10]. That "
+    "leaves open whether the best value of each factor still helps when the others are also at their best. Our "
+    "search for the best values also went one factor at a time, but we then ran the combined values in the "
+    "simulator and measured the result.",
+    "<b>Current tools.</b> The ns-3 wave module that provided the 802.11p MAC has been removed, so an 802.11p "
+    "scenario on current ns-3 has to be set up through the wifi module instead.",
     "<b>Separating range from fading.</b> With a realistic fading model, range and loss are mixed together. A "
     "hard range cut-off isolates the effect of how far the radio reaches.",
 ])
@@ -617,11 +618,13 @@ para("<b>Problem statement.</b> To design, build and run in NS-3 a highway VANET
      "throughput and packet loss change with vehicle density, vehicle speed, traffic load and communication range; "
      "and to find and verify the configuration that gives the most reliable delivery.")
 para("<b>In simple terms.</b> Let N be the number of vehicles, v their mean speed, R the sending rate of each flow "
-     "and r the radio range. For each of the four, we change it while keeping the others fixed and record the "
-     "PDR P(N, v, R, r). We then look for the combination that gives the highest P and check it in the "
-     "simulator.")
-para("<b>Research questions.</b> (1) How does each factor change PDR, delay, throughput and loss? (2) Which factor "
-     "matters most? (3) Do the trends hold for a different baseline and more seeds? (4) What PDR and delay does "
+     "and r the radio range. For each factor we change its value while the other three stay fixed and record the "
+     "PDR, P(N, v, R, r). We then take the tested value of each factor with the highest mean PDR, combine those four "
+     "values and run the combination in the simulator. The search goes one factor at a time over a few tested "
+     "values, so it may not find the best possible combination.")
+para("<b>Research questions.</b> (1) What happens to PDR, delay, throughput and loss as each factor changes? (2) "
+     "Which factor has the largest effect over the values we tested? (3) Do the trends hold with a different baseline "
+     "and more seeds? (4) What PDR and delay does "
      "the combination of the best values give, and is it what the single-factor results predict? (5) Does each "
      "factor still help once the others are at their best?")
 para("<b>Scope and assumptions.</b> This is a simulation of a straight two-way highway with constant-velocity "
@@ -911,10 +914,10 @@ table("Performance metrics", ["Metric", "Meaning", "Unit", "Source"], [
 ], [1.4, 2.75, 0.9, 1.2], align=["L", "L", "C", "C"])
 section("8.3 Experiments and Procedure")
 para("Each sweep varies one factor and keeps the other three at the baseline (Table 8). Every test point is run "
-     "with several seeds; the graphs show the mean with standard-deviation error bars. The whole procedure is "
-     "automated (Fig. 5): run_experiments.sh writes one job per run and runs them in parallel, each run appends "
-     "one CSV row, and plot_results.py merges the rows, computes the statistics and draws the graphs. An "
-     "interrupted batch can be restarted with the same command, because finished runs are skipped.")
+     "with several seeds; the graphs show the mean with standard-deviation error bars. Fig. 5 shows the automated "
+     "procedure. run_experiments.sh creates one job per run and runs the jobs in parallel. Each run adds one row to a "
+     "CSV file, and plot_results.py merges the rows, computes the statistics and draws the graphs. Running the same "
+     "command again after an interruption skips the runs that have already finished.")
 table("Experiments", ["Experiment", "Values", "Fixed at", "Seeds", "Runs", "Graphs"], [
     ["Density", "20, 40, 60, 80, 100 vehicles", "Baseline", "5", "25", "Density vs PDR; density vs loss"],
     ["Speed", "10, 15, 20, 25 m/s (36–90 km/h)", "Baseline", "5", "20", "Speed vs delay"],
@@ -924,22 +927,23 @@ table("Experiments", ["Experiment", "Values", "Fixed at", "Seeds", "Runs", "Grap
      "70 veh., 15 m/s, 150 kbit/s, 175 m", "8", "200", "Same four graphs"],
     ["Optimal study", "Optimal, baseline and 4 leave-one-out configurations", "See Section 9.4", "10", "60", "PDR, delay, loss bars"],
 ], [1.0, 1.75, 1.2, 0.5, 0.45, 1.35], align=["L", "L", "L", "C", "C", "L"], size=9.5)
-figure("fig_workflow.png", "Experiment workflow, from the job list to the graphs and the optimal configuration")
+figure("fig_workflow.png", "Steps from the job list to the graphs and the optimal configuration")
 section("8.4 Fairness and Validity of the Comparison")
-para("Within a sweep, every test point uses the same seeds 1 to 5, so the same random streams set the start "
-     "positions, speeds and flow pairs; only the varied factor differs. The baseline point is the same configuration "
-     "in all four sweeps and gives identical results in each (36.98% PDR), which confirms that the sweeps share it. "
-     "The second variation uses a different baseline, different values and eight seeds, so it checks that the "
-     "trends do not depend on our particular choices. The optimal configuration and the baseline were both run with "
-     "the same ten seeds, so they are compared on the same random streams.")
-para("Two limits apply to all results. First, run-to-run variation is large (a standard deviation of about 6 to 15 "
-     "PDR points with 5 seeds), so neighbouring test points can overlap. Second, the radio model has a hard range "
-     "and no fading, so absolute PDR values are specific to this model; the trends are what we compare.")
+para("Within a sweep, every test point uses seeds 1 to 5, so the same random streams set the start positions, speeds "
+     "and flow pairs and only the varied factor changes. The baseline appears in all four sweeps and gives 36.98% PDR "
+     "each time. It is the same configuration with the same seeds, so this shows only that the runs are repeatable. "
+     "The second variation changes the baseline and the tested values and uses eight seeds, which tests whether the "
+     "trends depend on our first choices. The optimal configuration and the baseline were run with the same ten "
+     "seeds, so they are compared on the same random streams. Over those ten seeds the baseline averages "
+     f"{f1(b['pdr_mean'])}%. The 36.98% figure is the mean of seeds 1 to 5 only, and seeds 6 to 10 average 35.1%.")
+para("Two limits apply to all results. Results vary a lot from run to run: with 5 seeds the standard deviation of PDR "
+     "is about 3 to 15 points, so neighbouring test points can overlap. The radio model also has a hard range and no "
+     "fading, so the absolute PDR values apply only to this model and we compare trends.")
 
 # =========================================================================== CHAPTER 9
 chapter(9, "Output and results")
 section("9.1 Comparative Analysis")
-para("Table 9 lists the mean and standard deviation of every test point of the four main sweeps (5 seeds each). "
+para("Table 9 gives the mean and standard deviation for each test point in the four main sweeps, using 5 seeds per point. "
      "The baseline (60 vehicles, 20 m/s, 100 kbit/s, 150 m) appears once in each sweep.")
 rows = []
 labels = {"density": ("Density", "veh."), "speed": ("Speed", "m/s"), "load": ("Load", "kbit/s"),
@@ -973,13 +977,14 @@ para(f"Packet loss is the mirror image of PDR (Fig. 7): it falls from {f1(S[('de
      f"{f1(S[('density', 100.0)]['lossRate_mean'])}% with 100. Even at its lowest, more than 60% of the packets are "
      "lost at the baseline speed, load and range, which shows how hard multi-hop delivery along a 2 km road is.")
 subhead("Vehicle speed")
-figure("speed_vs_delay.png", "Mean vehicle speed versus average end-to-end delay (AODV; 60 vehicles, 100 kbit/s, 150 m; 5 seeds)", width=4.6,
+figure("speed_vs_delay.png", "Average end-to-end delay against mean vehicle speed (AODV; 60 vehicles, 100 kbit/s, 150 m; 5 seeds)", width=4.6,
        folder=os.path.join(PROJ, "results/plots"))
 para(f"Delay rises from {f1(S[('speed', 10.0)]['delayMs_mean'])} ms at 10 m/s to "
-     f"{f1(S[('speed', 25.0)]['delayMs_mean'])} ms at 25 m/s (Fig. 8), with a dip at 20 m/s that lies inside the "
+     f"{f1(S[('speed', 25.0)]['delayMs_mean'])} ms at 25 m/s (Fig. 8). The dip at 20 m/s lies inside the "
      f"error bars. PDR falls steadily from {f1(S[('speed', 10.0)]['pdr_mean'])}% to "
-     f"{f1(S[('speed', 25.0)]['pdr_mean'])}%. Both happen because links between vehicles break sooner "
-     "(Equation 5): AODV spends more time rediscovering routes, and packets are buffered or dropped meanwhile.")
+     f"{f1(S[('speed', 25.0)]['pdr_mean'])}%. A likely cause of both is that links between vehicles break sooner "
+     "(Equation 5), so AODV spends more time rediscovering routes while packets are buffered or dropped. Route-error "
+     "counts at each speed would be needed to confirm this.")
 subhead("Traffic load")
 figure("load_vs_throughput.png", "Offered load versus delivered throughput per flow (AODV; 60 vehicles, 20 m/s, 150 m; 5 seeds)", width=4.6,
        folder=os.path.join(PROJ, "results/plots"))
@@ -1049,22 +1054,23 @@ table("PDR (%) in the second variation, in the order of the tested values", ["Sw
       [0.9, 1.3, 4.05], align=["L", "L", "L"], size=9.5)
 para(f"The trends are the same. PDR falls steadily with speed ({f1(S2[('speed', 5.0)]['pdr_mean'])}% at 5 m/s to "
      f"{f1(S2[('speed', 35.0)]['pdr_mean'])}% at 35 m/s) and with load ({f1(S2[('load', 25.0)]['pdr_mean'])}% to "
-     f"{f1(S2[('load', 1000.0)]['pdr_mean'])}%). Density is flat up to 70 vehicles and then falls. Range adds the "
-     f"most at short ranges ({f1(S2[('range', 75.0)]['pdr_mean'])}% at 75 m to {f1(S2[('range', 175.0)]['pdr_mean'])}% "
-     f"at 175 m) but levels off above about 225 m ({f1(S2[('range', 225.0)]['pdr_mean'])}%, "
-     f"{f1(S2[('range', 275.0)]['pdr_mean'])}%, {f1(S2[('range', 325.0)]['pdr_mean'])}%), while the delay rises "
-     f"again ({f1(S2[('range', 225.0)]['delayMs_mean'])} to {f1(S2[('range', 325.0)]['delayMs_mean'])} ms). So the "
-     "gain from range does not continue for ever: once the road is connected, a longer range mainly adds contention.")
+     f"{f1(S2[('load', 1000.0)]['pdr_mean'])}%). Density is flat up to 70 vehicles and then falls. Range helps most "
+     f"at short distances ({f1(S2[('range', 75.0)]['pdr_mean'])}% at 75 m to {f1(S2[('range', 175.0)]['pdr_mean'])}% "
+     f"at 175 m). Above about 225 m PDR levels off ({f1(S2[('range', 225.0)]['pdr_mean'])}%, "
+     f"{f1(S2[('range', 275.0)]['pdr_mean'])}%, {f1(S2[('range', 325.0)]['pdr_mean'])}%) and the delay rises "
+     f"again ({f1(S2[('range', 225.0)]['delayMs_mean'])} to {f1(S2[('range', 325.0)]['delayMs_mean'])} ms). Once the "
+     "road is connected, extra range probably adds contention, although we did not measure retransmissions or "
+     "channel busy time.")
 
 section("9.3 Visualisation of the Sweeps")
-para("To see what happens inside a run, make_animations.sh runs seed 1 of every test point with tracing on, and "
-     "animate_sweep.py draws all values of one sweep on one clock, with a live bar of the metric that the sweep's "
-     "graph plots. Figures 13 and 14 are snapshots at t = 30 s. Orange squares are senders, blue arcs are data "
+para("We used make_animations.sh to run seed 1 of every test point with tracing on. animate_sweep.py then draws all "
+     "the values of a sweep on one clock, next to a live bar of the metric that the sweep's graph plots. Figures 13 "
+     "and 14 show the state at t = 30 s. Orange squares are senders, blue arcs are data "
      "hops on air, light blue dots are route requests, red crosses are route errors and green circles are "
      "delivered packets.")
-figure("range_sweep_t30.png", "Range sweep at t = 30 s (seed 1): longer range gives longer hops and more "
-                              "deliveries", width=6.2, folder=os.path.join(PROJ, "results/animations"))
-para("At 50 m (top row) almost no data hops are on air: senders cannot find routes. As the range grows, the arcs "
+figure("range_sweep_t30.png", "Range sweep at t = 30 s (seed 1): hops get longer and deliveries increase as the "
+                              "range grows", width=6.2, folder=os.path.join(PROJ, "results/animations"))
+para("At 50 m (top row) hardly any data hops are on air, because senders cannot find routes. As the range grows, the arcs "
      "get longer and more packets are delivered. At 200 m many route errors (red) appear as links break and are "
      "repaired.")
 figure("density_sweep_t30.png", "Density sweep at t = 30 s (seed 1)", width=6.2,
@@ -1141,38 +1147,47 @@ para(f"Putting speed, load or range back each costs 6 to 8 PDR points and raises
      f"these three factors all still help in the combination. Density is different: with 60 instead of 80 "
      f"vehicles the PDR is {f1(O['loo_density']['pdr_mean'])} ± {f1(O['loo_density']['pdr_std'])}%, slightly "
      f"higher than {f1(o['pdr_mean'])} ± {f1(o['pdr_std'])}% but well within one standard deviation. With a 250 m "
-     "range each vehicle already has about 15–20 neighbours, so adding vehicles no longer improves connectivity and "
-     "mainly adds contention. The density optimum therefore moves down when the range grows: this interaction "
-     "is why the single-factor gains do not multiply.")
+     "range each vehicle already has about 15–20 neighbours, so more vehicles may add contention without improving "
+     "connectivity much. That would move the best density down as the range grows, and this interaction is one "
+     "likely reason why the single-factor gains do not multiply.")
 subhead("Recommended configuration")
-para("<b>Final optimal solution.</b> Communication range 250 m, mean speed 10 m/s, offered load 50 kbit/s per "
-     "flow and 60–80 vehicles per 2 km of four-lane highway. We keep 80 vehicles as the final value because 60 and "
-     "80 give the same PDR within the error bars, and 80 gives a much more consistent result "
-     f"(standard deviation {f1(o['pdr_std'])} against {f1(O['loo_density']['pdr_std'])} points). Measured over ten "
-     f"seeds, this configuration delivers {f1(o['pdr_mean'])}% of the packets with an average delay of "
-     f"{f1(o['delayMs_mean'])} ms and a loss rate of {f1(o['lossRate_mean'])}%.")
-para("Of the four factors, only two are design choices: the range (set by the transmit power and the receiver "
-     "sensitivity) and the load (set by how often applications send). Speed and density describe the traffic, so "
-     "the optimal solution says under which conditions the network works best, for example dense, slower traffic "
-     "near a junction or a speed-limited zone. If the goal is throughput rather than reliability, a higher load is "
-     "better: at 100 kbit/s per flow the network delivers "
+para("<b>Final optimal solution.</b> A communication range of 250 m, a mean speed of 10 m/s, an offered load of "
+     "50 kbit/s per flow and 60–80 vehicles per 2 km of four-lane highway. The choice between 60 and 80 vehicles is "
+     f"a trade-off. Sixty vehicles have the higher mean PDR ({f1(O['loo_density']['pdr_mean'])}% against "
+     f"{f1(o['pdr_mean'])}%) and do better on six of the ten seeds, but the difference is within the error bars. "
+     f"Eighty vehicles are more consistent (standard deviation {f1(o['pdr_std'])} against "
+     f"{f1(O['loo_density']['pdr_std'])} points, lowest seed 54.6% against 51.3%), so we keep 80 as the final value, "
+     "although ten seeds give only a rough estimate of that spread. Over ten seeds, 80 vehicles deliver "
+     f"{f1(o['pdr_mean'])}% of the packets with an average delay of {f1(o['delayMs_mean'])} ms and a loss rate of "
+     f"{f1(o['lossRate_mean'])}%.")
+para("Only two of the four factors are design choices. The load depends on how often applications send. On real "
+     "hardware the range would depend on the transmit power and the receiver sensitivity, although our model sets "
+     "it directly with a hard cut-off. Speed and density describe the traffic, so the result says which conditions "
+     "suit the network best, for example dense, slower traffic on a speed-limited stretch of highway. If throughput "
+     "matters more than reliability, a higher load is better: at 100 kbit/s per flow the network delivers "
      f"{f1(O['loo_load']['throughputKbps_mean'])} kbit/s per flow instead of {f1(o['throughputKbps_mean'])}, at "
      "the cost of 8 PDR points.")
 
 section("9.5 Observations")
 for t in [
-    "Range is the most important factor. A short range splits the highway into isolated groups; a longer range "
-    "gives more neighbours and fewer hops. Above about 225 m the gain levels off and the delay rises again.",
-    "Faster vehicles lose more packets and wait longer, because links last a shorter time and AODV must find new "
-    "routes more often.",
-    "The shared channel saturates quickly. Even at the baseline only about a third of the offered traffic "
-    "arrives, and at 750 kbit/s per flow less than a fifth does.",
-    "Density has a sweet spot: too few vehicles leave gaps, too many cause route-discovery floods and contention. "
-    "The sweet spot moves to fewer vehicles when the range is longer.",
-    "Lower loss does not always mean lower delay: at 50 kbit/s per flow PDR is the highest of the load sweep but "
-    "the delay is also the highest.",
+    "Over the values we tested, range has the largest effect on PDR: a span of 47 points for a fivefold change in "
+    "range, against 14 points for a 2.5-fold change in speed. This ranking depends on the values tested. A short "
+    "range splits the highway into isolated groups, and a longer range gives more neighbours and fewer hops. Above "
+    "about 225 m the gain levels off and the delay rises again.",
+    "Faster vehicles lose more packets and their packets take longer to arrive. The likely reason is that links last "
+    "a shorter time, so AODV has to find new routes more often.",
+    f"Channel saturation explains only part of the loss. At 50 kbit/s per flow, the lightest load tested, "
+    f"{f1(S[('load', 50.0)]['lossRate_mean'])}% of the packets are still lost, which points to missing or broken "
+    f"routes. As load grows and the shared channel fills, PDR falls further, from {f1(S[('load', 100.0)]['pdr_mean'])}% "
+    f"at the baseline to {f1(S[('load', 750.0)]['pdr_mean'])}% at 750 kbit/s per flow.",
+    "Density has a best region around 60–80 vehicles. Too few vehicles leave gaps in the road. With too many we "
+    "expect more route-discovery traffic and contention, although we did not count AODV messages. At a 250 m range "
+    "60 vehicles do as well as 80, so the best density may fall as the range grows.",
+    "A lower loss rate does not always come with a lower delay. At 50 kbit/s per flow, PDR is the highest in the "
+    f"load sweep and so is the delay ({f1(S[('load', 50.0)]['delayMs_mean'])} ms).",
     "Run-to-run variation is large, so several seeds are essential. A single seed can even show the opposite of "
-    "the trend (100 vehicles with seed 1).",
+    "the trend: at 100 vehicles seed 1 gives 40.3% PDR against a five-seed mean of "
+    f"{f1(S[('density', 100.0)]['pdr_mean'])}%, and it is above seed 1 at 60 and 80 vehicles (36.0% and 35.8%).",
     "The combination of the best values works (PDR 36.0% to 59.1%), but the gains do not add up: the measured "
     f"PDR is about {EST - float(o['pdr_mean']):.0f} points below the multiplicative estimate.",
 ]:
@@ -1189,12 +1204,14 @@ para(f"<b>Main findings.</b> In our highway VANET with AODV over IEEE 802.11p, c
      f"load raised the delivered throughput ({f1(S[('load', 50.0)]['throughputKbps_mean'])} to "
      f"{f1(S[('load', 750.0)]['throughputKbps_mean'])} kbit/s per flow) but lowered the share delivered "
      f"({f1(S[('load', 50.0)]['pdr_mean'])}% to {f1(S[('load', 750.0)]['pdr_mean'])}%). Density helped up to 60–80 "
-     "vehicles and then hurt. A second variation with a different baseline and eight seeds confirmed these trends "
-     "and showed that the gain from range levels off above about 225 m.")
-para(f"<b>Optimal solution.</b> Combining the best value of each factor (80 vehicles, 10 m/s, 50 kbit/s per flow, "
-     f"250 m) and measuring it over ten seeds raised PDR from {f1(b['pdr_mean'])}% to {f1(o['pdr_mean'])}%, cut the "
-     f"delay from {f1(b['delayMs_mean'])} ms to {f1(o['delayMs_mean'])} ms and made the result much more "
-     f"consistent (standard deviation {f1(b['pdr_std'])} to {f1(o['pdr_std'])} points). It is "
+     "vehicles and then hurt. A second variation with a different baseline and eight seeds showed the same trends "
+     "for speed, load and range, and the gain from range levelled off above about 225 m. Density behaved a little "
+     "differently: PDR peaks at 60–80 vehicles in the main sweep, while in the second variation it stays flat up to "
+     "70 vehicles and then falls.")
+para(f"<b>Optimal solution.</b> Combining the best tested value of each factor (80 vehicles, 10 m/s, 50 kbit/s per "
+     f"flow, 250 m) and running it over ten seeds raised PDR from {f1(b['pdr_mean'])}% to {f1(o['pdr_mean'])}%, cut "
+     f"the delay from {f1(b['delayMs_mean'])} ms to {f1(o['delayMs_mean'])} ms and reduced the standard deviation of "
+     f"PDR from {f1(b['pdr_std'])} to {f1(o['pdr_std'])} points. It is "
      f"{EST - float(o['pdr_mean']):.0f} points below the {EST:.0f}% that multiplying the single-factor gains "
      "predicts. The leave-one-out runs show why: speed, load and range each still add 6–8 points, but density no "
      "longer helps once the range is long, and 60 vehicles do as well as 80.")
@@ -1205,17 +1222,20 @@ para("<b>Contribution.</b> We built a reproducible 802.11p and AODV highway scen
 para("<b>Limitations.</b> (1) The radio reaches exactly r metres; there is no fading, shadowing or obstacles, so "
      "the absolute PDR values are specific to this model. (2) Vehicles drive at constant velocity on a straight "
      "road; there is no car-following, lane changing or junctions. (3) Traffic is unicast constant-rate UDP between "
-     "random pairs, not the periodic broadcast beacons of real safety applications. (4) Only AODV with default "
-     "settings is tested. (5) The ad hoc MAC is used instead of the 802.11p OCB mode. (6) The optimum was searched "
-     "one factor at a time over a few tested values; a full grid could find a slightly better combination. "
-     "(7) The delay peak at 50 kbit/s is not explained. (8) Even with 5–10 seeds the error bars are wide. (9) These "
-     "are network metrics: they show whether safety messages arrive reliably and in time, but they do not by "
-     "themselves show that real crashes or congestion are reduced.")
-para("<b>Future work.</b> (a) Use a realistic propagation model (for example Nakagami fading) instead of the hard "
-     "range. (b) Drive the vehicles with SUMO, through ns-3's trace support or Veins [18], [19]. (c) Compare AODV "
-     "with other routing protocols such as OLSR, DSDV and GPSR, and with broadcast safety beacons. (d) Search the "
-     "four factors jointly on a grid around the optimum, with more seeds. (e) Add roadside units, and finally "
-     "test on real 802.11p hardware.")
+     "random pairs, whereas real safety applications send periodic broadcast beacons, so our results apply to safety "
+     f"traffic only indirectly. The {f1(o['delayMs_mean'])} ms delay of the optimal configuration meets the 100 ms "
+     f"target, for example, but only {f1(o['pdr_mean'])}% of its packets arrive. (4) We tested only AODV, with default "
+     "settings. (5) We used the ad hoc MAC in place of the 802.11p OCB mode. (6) We searched for the optimum one "
+     "factor at a time over a few tested values, so a full grid could find a better combination. "
+     "(7) We could not explain the delay peak at 50 kbit/s. (8) The error bars remain wide even with 5–10 seeds. (9) "
+     "These are network metrics. They show whether packets arrive reliably and on time, and they cannot show whether "
+     "real crashes or congestion go down.")
+para("<b>Future work.</b> (a) Replace the hard range with a realistic propagation model such as Nakagami fading "
+     "(limitation 1). (b) Drive the vehicles with road traffic from SUMO [19] through ns-3's trace support "
+     "(limitation 2). Veins [18] couples SUMO with OMNeT++, so using it would mean leaving ns-3. (c) Compare AODV with "
+     "other routing protocols such as OLSR, DSDV and GPSR (limitation 4), and test broadcast safety beacons "
+     "(limitation 3). (d) Search the four factors jointly on a grid around the optimum, with more seeds (limitations "
+     "6 and 8). (e) Add roadside units, which our scenario does not have, and then test on real 802.11p hardware.")
 
 # =========================================================================== CHAPTER 11
 chapter(11, "References")
