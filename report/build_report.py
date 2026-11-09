@@ -371,11 +371,6 @@ for cell, (label, name, role) in zip(sig.rows[0].cells, (
         runs(pp, text, size=size, bold=bold)
 for col in sig.columns:
     col.width = Inches(FRONT_W / 3)
-para("Name and signature of Examiners along with date", align=WD_ALIGN_PARAGRAPH.LEFT, bold=True, before=24,
-     after=8)
-for k in (1, 2):
-    para(f"Examiner {k}: ______________________________      Date: ______________",
-         align=WD_ALIGN_PARAGRAPH.LEFT, after=6)
 
 # --------------------------------------------------------------------------- table of contents
 s3 = doc.add_section(WD_SECTION.NEW_PAGE)
