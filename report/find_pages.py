@@ -1,6 +1,6 @@
 """Find the printed page number of every chapter, section, figure and table in a rendered PDF.
 Usage: python find_pages.py REPORT.pdf KEYS.json OUT_pages.json
-Printed page = PDF page index + 1 (numbering starts at 3 on the third page)."""
+Printed page = PDF page index + 1 (numbering starts at 4 on the fourth page)."""
 import json
 import re
 import sys
